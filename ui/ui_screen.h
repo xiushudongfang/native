@@ -239,6 +239,28 @@ private:
 	ScreenManager *screenManager_;
 };
 
+
+class PopupSliderChoice1 : public Choice {
+public:
+	PopupSliderChoice1(int *value, int minValue, int maxValue, const std::string &text, ScreenManager *screenManager, LayoutParams *layoutParams = 0);
+	PopupSliderChoice1(int *value, int minValue, int maxValue, const std::string &text, int step, ScreenManager *screenManager, LayoutParams *layoutParams = 0);
+
+	virtual void Draw(UIContext &dc) override;
+
+	Event OnChange;
+
+private:
+	EventReturn HandleClick(EventParams &e);
+	EventReturn HandleChange(EventParams &e);
+
+	int *value_;
+	int minValue_;
+	int maxValue_;
+	int step_;
+	ScreenManager *screenManager_;
+};
+
+
 class PopupSliderChoiceFloat : public Choice {
 public:
 	PopupSliderChoiceFloat(float *value, float minValue, float maxValue, const std::string &text, ScreenManager *screenManager, LayoutParams *layoutParams = 0);

@@ -294,9 +294,19 @@ PopupSliderChoice::PopupSliderChoice(int *value, int minValue, int maxValue, con
 	OnClick.Handle(this, &PopupSliderChoice::HandleClick);
 }
 
+PopupSliderChoice1::PopupSliderChoice1(int *value, int minValue, int maxValue, const std::string &text, ScreenManager *screenManager, LayoutParams *layoutParams)
+: Choice(text, "", false, layoutParams), value_(value), minValue_(minValue), maxValue_(maxValue), step_(1), screenManager_(screenManager) {
+	OnClick.Handle(this, &PopupSliderChoice1::HandleClick);
+}
+
 PopupSliderChoice::PopupSliderChoice(int *value, int minValue, int maxValue, const std::string &text, int step, ScreenManager *screenManager, LayoutParams *layoutParams)
 : Choice(text, "", false, layoutParams), value_(value), minValue_(minValue), maxValue_(maxValue), step_(step), screenManager_(screenManager) {
 	OnClick.Handle(this, &PopupSliderChoice::HandleClick);
+}
+
+PopupSliderChoice1::PopupSliderChoice1(int *value, int minValue, int maxValue, const std::string &text, int step, ScreenManager *screenManager, LayoutParams *layoutParams)
+: Choice(text, "", false, layoutParams), value_(value), minValue_(minValue), maxValue_(maxValue), step_(step), screenManager_(screenManager) {
+	OnClick.Handle(this, &PopupSliderChoice1::HandleClick);
 }
 
 PopupSliderChoiceFloat::PopupSliderChoiceFloat(float *value, float minValue, float maxValue, const std::string &text, ScreenManager *screenManager, LayoutParams *layoutParams)
@@ -316,13 +326,40 @@ EventReturn PopupSliderChoice::HandleClick(EventParams &e) {
 	return EVENT_DONE;
 }
 
+EventReturn PopupSliderChoice1::HandleClick(EventParams &e) {
+	SliderPopupScreen *popupScreen = new SliderPopupScreen(value_, minValue_, maxValue_, text_, step_);
+	popupScreen->OnChange.Handle(this, &PopupSliderChoice1::HandleChange);
+	screenManager_->push(popupScreen);
+	return EVENT_DONE;
+}
+
 EventReturn PopupSliderChoice::HandleChange(EventParams &e) {
 	e.v = this;
 	OnChange.Trigger(e);
 	return EVENT_DONE;
 }
 
+EventReturn PopupSliderChoice1::HandleChange(EventParams &e) {
+	e.v = this;
+	OnChange.Trigger(e);
+	NativeShutdownGraphics();
+	NativeInitGraphics();
+	return EVENT_DONE;
+}
+
 void PopupSliderChoice::Draw(UIContext &dc) {
+	Style style = dc.theme->itemStyle;
+	if (!IsEnabled()) {
+		style = dc.theme->itemDisabledStyle;
+	}
+	Choice::Draw(dc);
+	char temp[32];
+	sprintf(temp, "%i", *value_);
+	dc.SetFontStyle(dc.theme->uiFont);
+	dc.DrawText(temp, bounds_.x2() - 12, bounds_.centerY(), style.fgColor, ALIGN_RIGHT | ALIGN_VCENTER);
+}
+
+void PopupSliderChoice1::Draw(UIContext &dc) {
 	Style style = dc.theme->itemStyle;
 	if (!IsEnabled()) {
 		style = dc.theme->itemDisabledStyle;
