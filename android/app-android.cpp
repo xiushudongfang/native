@@ -43,6 +43,7 @@ std::queue<FrameCommand> frameCommands;
 
 std::string systemName;
 std::string langRegion;
+std::string mogaVersion;
 
 static float left_joystick_x_async;
 static float left_joystick_y_async;
@@ -103,6 +104,8 @@ std::string System_GetProperty(SystemProperty prop) {
 		return systemName;
 	case SYSPROP_LANGREGION:  // "en_US"
 		return langRegion;
+	case SYSPROP_MOGA_VERSION:
+		return mogaVersion;
 	default:
 		return "";
 	}
@@ -144,9 +147,9 @@ std::string GetJavaString(JNIEnv *env, jstring jstr) {
 // This is now only used as a trigger for GetAppInfo as a function to all before Init.
 // On Android we don't use any of the values it returns.
 extern "C" jboolean Java_com_henrikrydgard_libnative_NativeApp_isLandscape(JNIEnv *env, jclass) {
-	std::string app_name, app_nice_name;
+	std::string app_name, app_nice_name, version;
 	bool landscape;
-	NativeGetAppInfo(&app_name, &app_nice_name, &landscape);
+	NativeGetAppInfo(&app_name, &app_nice_name, &landscape, &version);
 	return landscape;
 }
 
@@ -210,11 +213,12 @@ extern "C" void Java_com_henrikrydgard_libnative_NativeApp_init
 
 	std::string app_name;
 	std::string app_nice_name;
+	std::string version;
 	bool landscape;
 
 	net::Init();
 
-	NativeGetAppInfo(&app_name, &app_nice_name, &landscape);
+	NativeGetAppInfo(&app_name, &app_nice_name, &landscape, &version);
 
 
 	// If shortcut_param is not empty, pass it as additional varargs argument to NativeInit() method.
@@ -422,7 +426,6 @@ extern "C" jboolean Java_com_henrikrydgard_libnative_NativeApp_keyDown(JNIEnv *,
 	keyInput.keyCode = key;
 	keyInput.flags = KEY_DOWN;
 	if (isRepeat) {
-		ILOG("Is repeat! %i", key);
 		keyInput.flags |= KEY_IS_REPEAT;
 	}
 	return NativeKey(keyInput);
@@ -519,5 +522,9 @@ extern "C" jboolean JNICALL Java_com_henrikrydgard_libnative_NativeApp_accelerom
 extern "C" void Java_com_henrikrydgard_libnative_NativeApp_sendMessage(JNIEnv *env, jclass, jstring message, jstring param) {
 	std::string msg = GetJavaString(env, message);
 	std::string prm = GetJavaString(env, param);
+
+	if (msg == "moga") {
+		mogaVersion = prm;
+	}
 	NativeMessageReceived(msg.c_str(), prm.c_str());
 }

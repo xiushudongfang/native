@@ -35,6 +35,7 @@ SDLJoystick *joystick = NULL;
 #include "net/resolve.h"
 #include "base/NKCodeFromSDL.h"
 #include "util/const_map.h"
+#include "util/text/utf8.h"
 #include "math/math_util.h"
 
 #ifdef PPSSPP
@@ -133,7 +134,11 @@ int8_t EGL_Init() {
 #endif
 		EGL_DEPTH_SIZE,      16,
 		EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
+#ifdef USING_GLES2
 		EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+#else
+		EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+#endif
 		EGL_SAMPLE_BUFFERS,  0,
 		EGL_SAMPLES,         0,
 #ifdef MAEMO
@@ -153,10 +158,6 @@ int8_t EGL_Init() {
 	//Get the SDL window handle
 	SDL_SysWMinfo sysInfo; //Will hold our Window information
 	SDL_VERSION(&sysInfo.version); //Set SDL version
-	if (SDL_GetWMInfo(&sysInfo) <= 0) {
-		printf("EGL ERROR: Unable to get SDL window handle: %s\n", SDL_GetError());
-		return 1;
-	}
 #endif
 
 #ifdef USING_FBDEV
@@ -392,8 +393,9 @@ int main(int argc, char *argv[]) {
 
 	std::string app_name;
 	std::string app_name_nice;
+	std::string version;
 	bool landscape;
-	NativeGetAppInfo(&app_name, &app_name_nice, &landscape);
+	NativeGetAppInfo(&app_name, &app_name_nice, &landscape, &version);
 
 	net::Init();
 
@@ -438,7 +440,7 @@ int main(int argc, char *argv[]) {
 
 	Uint32 mode;
 #ifdef USING_GLES2
-	mode = SDL_SWSURFACE | SDL_FULLSCREEN;
+	mode = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN;
 #else
 	mode = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 #endif
@@ -475,6 +477,11 @@ int main(int argc, char *argv[]) {
 			set_ipad = true;
 		if (!strcmp(argv[i],"--portrait"))
 			portrait = true;
+	}
+
+	// Is resolution is too low to run windowed
+	if (g_DesktopWidth < 480 * 2 && g_DesktopHeight < 272 * 2) {
+		mode |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
 	if (mode & SDL_WINDOW_FULLSCREEN_DESKTOP) {
@@ -701,6 +708,17 @@ int main(int argc, char *argv[]) {
 						if (legacyKeyMap[i] == key.keyCode)
 							pad_buttons &= ~(1 << i);
 					}
+					break;
+				}
+			case SDL_TEXTINPUT:
+				{
+					int pos = 0;
+					int c = u8_nextchar(event.text.text, &pos);
+					KeyInput key;
+					key.flags = KEY_CHAR;
+					key.keyCode = c;
+					key.deviceId = DEVICE_ID_KEYBOARD;
+					NativeKey(key);
 					break;
 				}
 			case SDL_MOUSEBUTTONDOWN:

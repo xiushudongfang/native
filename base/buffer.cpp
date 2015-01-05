@@ -57,9 +57,13 @@ void Buffer::Take(size_t length, std::string *dest) {
 	}
 	dest->resize(length);
 	if (length > 0) {
-		memcpy(&(*dest)[0], &data_[0], length);
-		data_.erase(data_.begin(), data_.begin() + length);
+		Take(length, &(*dest)[0]);
 	}
+}
+
+void Buffer::Take(size_t length, char *dest) {
+	memcpy(dest, &data_[0], length);
+	data_.erase(data_.begin(), data_.begin() + length);
 }
 
 int Buffer::TakeLineCRLF(std::string *dest) {
@@ -139,7 +143,7 @@ bool Buffer::FlushToFile(const char *filename) {
 
 bool Buffer::FlushSocket(uintptr_t sock) {
 	for (size_t pos = 0, end = data_.size(); pos < end; ) {
-		int sent = send(sock, &data_[pos], end - pos, 0);
+		int sent = send(sock, &data_[pos], (int)(end - pos), 0);
 		if (sent < 0) {
 			ELOG("FlushSocket failed");
 			return false;
@@ -155,27 +159,43 @@ bool Buffer::FlushSocket(uintptr_t sock) {
 	return true;
 }
 
-bool Buffer::ReadAll(int fd) {
-	char buf[1024];
+bool Buffer::ReadAll(int fd, int hintSize) {
+	std::vector<char> buf;
+	if (hintSize >= 65536 * 16) {
+		buf.resize(65536);
+	} else if (hintSize >= 1024 * 16) {
+		buf.resize(hintSize / 16);
+	} else {
+		buf.resize(1024);
+	}
+
 	while (true) {
-		int retval = recv(fd, buf, sizeof(buf), 0);
-		if (retval == 0)
-			return true;
-		else if (retval < 0) {
+		int retval = recv(fd, &buf[0], (int)buf.size(), 0);
+		if (retval == 0) {
+			break;
+		} else if (retval < 0) {
 			ELOG("Error reading from buffer: %i", retval);
 			return false;
 		}
 		char *p = Append((size_t)retval);
-		memcpy(p, buf, retval);
+		memcpy(p, &buf[0], retval);
 	}
 	return true;
 }
 
 bool Buffer::ReadAllWithProgress(int fd, int knownSize, float *progress) {
-	char buf[1024];
+	std::vector<char> buf;
+	if (knownSize >= 65536 * 16) {
+		buf.resize(65536);
+	} else if (knownSize >= 1024 * 16) {
+		buf.resize(knownSize / 16);
+	} else {
+		buf.resize(1024);
+	}
+
 	int total = 0;
 	while (true) {
-		int retval = recv(fd, buf, sizeof(buf), 0);
+		int retval = recv(fd, &buf[0], (int)buf.size(), 0);
 		if (retval == 0) {
 			return true;
 		} else if (retval < 0) {
@@ -183,7 +203,7 @@ bool Buffer::ReadAllWithProgress(int fd, int knownSize, float *progress) {
 			return false;
 		}
 		char *p = Append((size_t)retval);
-		memcpy(p, buf, retval);
+		memcpy(p, &buf[0], retval);
 		total += retval;
 		*progress = (float)total / (float)knownSize;
 	}
@@ -194,7 +214,7 @@ int Buffer::Read(int fd, size_t sz) {
 	char buf[1024];
 	int retval;
 	size_t received = 0;
-	while ((retval = recv(fd, buf, std::min(sz, sizeof(buf)), 0)) > 0) {
+	while ((retval = recv(fd, buf, (int)std::min(sz, sizeof(buf)), 0)) > 0) {
 		if (retval < 0) {
 			return retval;
 		}
@@ -205,7 +225,7 @@ int Buffer::Read(int fd, size_t sz) {
 		if (sz == 0)
 			return 0;
 	}
-	return received;
+	return (int)received;
 }
 
 void Buffer::PeekAll(std::string *dest) {

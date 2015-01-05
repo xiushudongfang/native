@@ -41,6 +41,27 @@ static const unsigned short blendFactorToGL[] = {
 	GL_CONSTANT_COLOR,
 };
 
+#ifndef USING_GLES2
+static const unsigned short logicOpToGL[] = {
+	GL_CLEAR,
+	GL_SET,
+	GL_COPY,
+	GL_COPY_INVERTED,
+	GL_NOOP,
+	GL_INVERT,
+	GL_AND,
+	GL_NAND,
+	GL_OR,
+	GL_NOR,
+	GL_XOR,
+	GL_EQUIV,
+	GL_AND_REVERSE,
+	GL_AND_INVERTED,
+	GL_OR_REVERSE,
+	GL_OR_INVERTED,
+};
+#endif
+
 static const unsigned short primToGL[] = {
 	GL_POINTS,
 	GL_LINES,
@@ -64,6 +85,8 @@ public:
 	bool enabled;
 	GLuint eqCol, eqAlpha;
 	GLuint srcCol, srcAlpha, dstCol, dstAlpha;
+	bool logicEnabled;
+	GLuint logicOp;
 	// int maskBits;
 	// uint32_t fixedColor;
 
@@ -75,7 +98,10 @@ public:
 		// glstate.blendColor.set(fixedColor);
 
 #if !defined(USING_GLES2)
-		glstate.colorLogicOp.disable();
+		glstate.colorLogicOp.set(logicEnabled);
+		if (logicEnabled) {
+			glstate.logicOp.set(logicOp);
+		}
 #endif
 
 		// glstate.colorMask.set(maskBits & 1, (maskBits >> 1) & 1, (maskBits >> 2) & 1, (maskBits >> 3) & 1);
@@ -186,12 +212,12 @@ bool Thin3DGLShader::Compile(const char *source) {
 
 	glShaderSource(shader_, 1, &source, 0);
 	glCompileShader(shader_);
-	GLint success;
+	GLint success = 0;
 	glGetShaderiv(shader_, GL_COMPILE_STATUS, &success);
 	if (!success) {
 #define MAX_INFO_LOG_SIZE 2048
 		GLchar infoLog[MAX_INFO_LOG_SIZE];
-		GLsizei len;
+		GLsizei len = 0;
 		glGetShaderInfoLog(shader_, MAX_INFO_LOG_SIZE, &len, infoLog);
 		infoLog[len] = '\0';
 		glDeleteShader(shader_);
@@ -285,11 +311,7 @@ public:
 	Thin3DShader *CreateFragmentShader(const char *glsl_source, const char *hlsl_source);
 
 	void SetScissorEnabled(bool enable) override {
-		if (enable) {
-			glstate.scissorTest.enable();
-		} else {
-			glstate.scissorTest.disable();
-		}
+		glstate.scissorTest.set(enable);
 	}
 
 	void SetScissorRect(int left, int top, int width, int height) override {
@@ -514,6 +536,10 @@ Thin3DBlendState *Thin3DGLContext::CreateBlendState(const T3DBlendStateDesc &des
 	bs->eqAlpha = blendEqToGL[desc.eqAlpha];
 	bs->srcAlpha = blendFactorToGL[desc.srcAlpha];
 	bs->dstAlpha = blendFactorToGL[desc.dstAlpha];
+#ifndef USING_GLES2
+	bs->logicEnabled = desc.logicEnabled;
+	bs->logicOp = logicOpToGL[desc.logicOp];
+#endif
 	return bs;
 }
 
@@ -696,6 +722,7 @@ void Thin3DGLContext::DrawIndexed(T3DPrimitive prim, Thin3DShaderSet *pipeline, 
 	Thin3DGLVertexFormat *fmt = static_cast<Thin3DGLVertexFormat *>(format);
 
 	vbuf->Bind();
+	ibuf->Bind();
 	fmt->Apply();
 	pipe->Apply();
 	
@@ -755,6 +782,8 @@ void Thin3DGLVertexFormat::Apply() {
 		case UNORM8x4:
 			glVertexAttribPointer(components_[i].semantic, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride_, (void *)(intptr_t)components_[i].offset);
 			break;
+		case INVALID:
+			ELOG("Thin3DGLVertexFormat: Invalid component type applied.");
 		}
 	}
 }

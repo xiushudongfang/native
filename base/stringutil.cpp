@@ -37,6 +37,34 @@ void OutputDebugStringUTF8(const char *p) {
 
 #endif
 
+void StringTrimEndNonAlphaNum(char *str) {
+	ssize_t n = strlen(str);
+	while (!isalnum(str[n]) && n >= 0) {
+		str[n--] = '\0';
+	}
+}
+
+void SkipSpace(const char **ptr) {
+	while (**ptr && isspace(**ptr)) {
+		(*ptr)++;
+	}
+}
+
+void StringUpper(char *str) {
+	while (*str) {
+		*str = toupper(*str);
+		str++;
+	}
+}
+
+void StringUpper(char *str, int len) {
+	while (len--) {
+		*str = toupper(*str);
+		str++;
+	}
+}
+
+
 unsigned int parseHex(const char *_szValue)
 {
 	int Value = 0;
@@ -230,6 +258,10 @@ void SplitString(const std::string& str, const char delim, std::vector<std::stri
 std::string ReplaceAll(std::string result, const std::string& src, const std::string& dest)
 {
 	size_t pos = 0;
+
+	if (src == dest)
+		return result;
+
 	while(1)
 	{
 		pos = result.find(src, pos);

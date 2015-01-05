@@ -18,7 +18,9 @@ enum {
 };
 
 enum {
-	BUG_FBO_UNUSABLE=1
+	BUG_FBO_UNUSABLE = 1,
+	BUG_PVR_SHADER_PRECISION_BAD = 2,
+	BUG_PVR_SHADER_PRECISION_TERRIBLE = 4,
 };
 
 // Extensions to look at using:
@@ -29,6 +31,7 @@ enum {
 struct GLExtensions {
 	int ver[3];
 	int gpuVendor;
+	char model[128];
 
 	bool GLES3;  // true if the full OpenGL ES 3.0 is supported
 
@@ -70,6 +73,10 @@ struct GLExtensions {
 
 	// Bugs
 	int bugs;
+
+	// Shader precision. Only fetched on ES for now.
+	int range[2][6][2];  // [vs,fs][lowf,mediumf,highf,lowi,mediumi,highi][min,max]
+	int precision[2][6];  // [vs,fs][lowf...]
 
 	// greater-or-equal than
 	bool VersionGEThan(int major, int minor, int sub = 0);

@@ -441,6 +441,8 @@ void LinearLayout::Measure(const UIContext &dc, MeasureSpec horiz, MeasureSpec v
 		float unit = (measuredWidth_ - weightZeroSum) / weightSum;
 		// Redistribute the stretchy ones! and remeasure the children!
 		for (size_t i = 0; i < views_.size(); i++) {
+			if (views_[i]->GetVisibility() == V_GONE)
+				continue;
 			const LayoutParams *layoutParams = views_[i]->GetLayoutParams();
 			const LinearLayoutParams *linLayoutParams = static_cast<const LinearLayoutParams *>(layoutParams);
 			if (!linLayoutParams->Is(LP_LINEAR)) linLayoutParams = 0;
@@ -459,6 +461,8 @@ void LinearLayout::Measure(const UIContext &dc, MeasureSpec horiz, MeasureSpec v
 
 		// Redistribute! and remeasure children!
 		for (size_t i = 0; i < views_.size(); i++) {
+			if (views_[i]->GetVisibility() == V_GONE)
+				continue;
 			const LayoutParams *layoutParams = views_[i]->GetLayoutParams();
 			const LinearLayoutParams *linLayoutParams = static_cast<const LinearLayoutParams *>(layoutParams);
 			if (!linLayoutParams->Is(LP_LINEAR)) linLayoutParams = 0;
@@ -533,12 +537,16 @@ void FrameLayout::Measure(const UIContext &dc, MeasureSpec horiz, MeasureSpec ve
 	}
 
 	for (size_t i = 0; i < views_.size(); i++) {
+		if (views_[i]->GetVisibility() == V_GONE)
+			continue;
 		views_[i]->Measure(dc, horiz, vert);
 	}
 }
 
 void FrameLayout::Layout() {
 	for (size_t i = 0; i < views_.size(); i++) {
+		if (views_[i]->GetVisibility() == V_GONE)
+			continue;
 		float w = views_[i]->GetMeasuredWidth();
 		float h = views_[i]->GetMeasuredHeight();
 
@@ -766,6 +774,13 @@ void ScrollView::ClampScrollPos(float &pos) {
 	if (pos > scrollMax) {
 		pos = scrollMax;
 	}
+}
+
+void ScrollView::ScrollToBottom() {
+	float childHeight = views_[0]->GetBounds().h;
+	float scrollMax = std::max(0.0f, childHeight - bounds_.h);
+	scrollPos_ = scrollMax;
+	scrollTarget_ = scrollMax;
 }
 
 bool ScrollView::CanScroll() const {

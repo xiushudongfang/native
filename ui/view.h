@@ -153,6 +153,8 @@ enum Gravity {
 	G_BOTTOMLEFT = G_BOTTOM | G_LEFT,
 	G_BOTTOMRIGHT = G_BOTTOM | G_RIGHT,
 
+	G_CENTER = G_HCENTER | G_VCENTER,
+
 	G_VERTMASK = 3 << 2,
 };
 
@@ -652,19 +654,21 @@ private:
 class TextView : public InertView {
 public:
 	TextView(const std::string &text, LayoutParams *layoutParams = 0) 
-		: InertView(layoutParams), text_(text), textAlign_(0), small_(false) {}
+		: InertView(layoutParams), text_(text), textAlign_(0), textColor_(0xFFFFFFFF), small_(false) {}
 
 	TextView(const std::string &text, int textAlign, bool small, LayoutParams *layoutParams = 0)
-		: InertView(layoutParams), text_(text), textAlign_(textAlign), small_(small) {}
+		: InertView(layoutParams), text_(text), textAlign_(textAlign), textColor_(0xFFFFFFFF), small_(small) {}
 
 	virtual void GetContentDimensions(const UIContext &dc, float &w, float &h) const override;
 	virtual void Draw(UIContext &dc) override;
 	void SetText(const std::string &text) { text_ = text; }
 	void SetSmall(bool small) { small_ = small; }
+	void SetTextColor(uint32_t color) { textColor_ = color; }
 
 private:
 	std::string text_;
 	int textAlign_;
+	uint32_t textColor_;
 	bool small_;
 };
 
@@ -679,6 +683,9 @@ public:
 	virtual void Draw(UIContext &dc) override;
 	virtual void Key(const KeyInput &key) override;
 	virtual void Touch(const TouchInput &touch) override;
+
+	Event OnTextChange;
+	Event OnEnter;
 
 private:
 	void InsertAtCaret(const char *text);
@@ -743,20 +750,6 @@ public:
 
 private:
 	Thin3DTexture *texture_;
-	uint32_t color_;
-	ImageSizeMode sizeMode_;
-};
-
-// ImageFileView takes a filename and keeps track of the texture by itself.
-class ImageFileView : public InertView {
-public:
-	ImageFileView(std::string filename, ImageSizeMode sizeMode, LayoutParams *layoutParams = 0);
-	~ImageFileView();
-	virtual void GetContentDimensions(const UIContext &dc, float &w, float &h) const;
-	virtual void Draw(UIContext &dc);
-
-private:
-	Texture *texture_;
 	uint32_t color_;
 	ImageSizeMode sizeMode_;
 };

@@ -127,7 +127,12 @@ void CheckGLExtensions() {
 		gl_extensions.gpuVendor = GPU_VENDOR_UNKNOWN;
 	}
 
-	ILOG("GPU Vendor : %s ; GL version str: %s ; GLSL version str: %s", cvendor, versionStr ? versionStr : "N/A", glslVersionStr ? glslVersionStr : "N/A");
+	ILOG("GPU Vendor : %s ; renderer: %s version str: %s ; GLSL version str: %s", cvendor, renderer ? renderer : "N/A", versionStr ? versionStr : "N/A", glslVersionStr ? glslVersionStr : "N/A");
+
+	if (renderer) {
+		strncpy(gl_extensions.model, renderer, sizeof(gl_extensions.model));
+		gl_extensions.model[sizeof(gl_extensions.model) - 1] = 0;
+	}
 
 #ifndef USING_GLES2
 	char buffer[64] = { 0 };
@@ -306,9 +311,30 @@ void CheckGLExtensions() {
 #endif
 
 #ifdef USING_GLES2
+	if (true) {
+#else
+	if (strstr(extString, "GL_ARB_ES2_compatibility")) {
+#endif
+		const GLint precisions[6] = {
+			GL_LOW_FLOAT, GL_MEDIUM_FLOAT, GL_HIGH_FLOAT,
+			GL_LOW_INT, GL_MEDIUM_INT, GL_HIGH_INT
+		};
+		GLint shaderTypes[2] = {
+			GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
+		};
+		for (int st = 0; st < 2; st++) {
+			for (int p = 0; p < 6; p++) {
+				glGetShaderPrecisionFormat(shaderTypes[st], precisions[p], gl_extensions.range[st][p], &gl_extensions.precision[st][p]);
+			}
+		}
+	}
+
+
+#ifdef USING_GLES2
 	gl_extensions.FBO_ARB = true;
 	gl_extensions.FBO_EXT = false;
 #else
+	
 	gl_extensions.FBO_ARB = false;
 	gl_extensions.FBO_EXT = false;
 	gl_extensions.PBO_ARB = true;

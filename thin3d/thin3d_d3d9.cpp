@@ -507,6 +507,7 @@ Thin3DBlendState *Thin3DDX9Context::CreateBlendState(const T3DBlendStateDesc &de
 	bs->eqAlpha = blendEqToD3D9[desc.eqAlpha];
 	bs->srcAlpha = blendFactorToD3D9[desc.srcAlpha];
 	bs->dstAlpha = blendFactorToD3D9[desc.dstAlpha];
+	// Ignore logic ops, we don't support them in D3D9
 	return bs;
 }
 
@@ -638,12 +639,17 @@ void Thin3DDX9Context::DrawIndexed(T3DPrimitive prim, Thin3DShaderSet *shaderSet
 	device_->DrawIndexedPrimitive(primToD3D9[prim], 0, 0, vertexCount, 0, vertexCount / 3);
 }
 
+static uint32_t SwapRB(uint32_t c) {
+	return (c & 0xFF00FF00) | ((c >> 16) & 0xFF) | ((c << 16) & 0xFF0000);
+}
+
 void Thin3DDX9Context::Clear(int mask, uint32_t colorval, float depthVal, int stencilVal) {
 	UINT d3dMask = 0;
 	if (mask & T3DClear::COLOR) d3dMask |= D3DCLEAR_TARGET;
 	if (mask & T3DClear::DEPTH) d3dMask |= D3DCLEAR_ZBUFFER;
 	if (mask & T3DClear::STENCIL) d3dMask |= D3DCLEAR_STENCIL;
-	device_->Clear(0, NULL, d3dMask, (D3DCOLOR)colorval, depthVal, stencilVal);
+
+	device_->Clear(0, NULL, d3dMask, (D3DCOLOR)SwapRB(colorval), depthVal, stencilVal);
 }
 
 void Thin3DDX9Context::SetScissorEnabled(bool enable) {
