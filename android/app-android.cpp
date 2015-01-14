@@ -129,6 +129,8 @@ int System_GetPropertyInt(SystemProperty prop) {
 		return optimalSampleRate;
 	case SYSPROP_AUDIO_OPTIMAL_FRAMES_PER_BUFFER:
 		return optimalFramesPerBuffer;
+	case SYSPROP_DISPLAY_REFRESH_RATE:
+		return (int)(display_hz * 1000.0);
 	default:
 		return -1;
 	}
@@ -247,10 +249,14 @@ extern "C" void Java_com_henrikrydgard_libnative_NativeApp_init
 
 extern "C" void Java_com_henrikrydgard_libnative_NativeApp_audioInit(JNIEnv *, jclass) {
 	sampleRate = optimalSampleRate;
-	if (NativeQueryConfig("force44khz") != "0") {
+	if (NativeQueryConfig("force44khz") != "0" || optimalSampleRate == 0) {
 		sampleRate = 44100;
 	}
-	framesPerBuffer = optimalFramesPerBuffer;
+	if (optimalFramesPerBuffer > 0) {
+		framesPerBuffer = optimalFramesPerBuffer;
+	} else {
+		framesPerBuffer = 512;
+	}
 	ILOG("NativeApp.audioInit() -- Using OpenSL audio! frames/buffer: %i   optimal sr: %i   actual sr: %i", optimalFramesPerBuffer, optimalSampleRate, sampleRate);
 	AndroidAudio_Init(&NativeMix, library_path, framesPerBuffer, sampleRate);
 }
